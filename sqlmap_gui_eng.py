@@ -447,7 +447,7 @@ class SqlmapGui(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sqlmap GUI Wrapper")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1200, 850)
         self.settings = QSettings("MyCompany", "SqlmapGui")
         self.widgets_map = {}
         self.sqlmap_path = ""
@@ -1427,9 +1427,15 @@ class SqlmapGui(QMainWindow):
     def closeEvent(self, event):
         running_threads = [data["thread"] for data in self.running_processes.values() if data["thread"].isRunning()]
         if running_threads:
-            reply = QMessageBox.question(self, 'Exit?', f'{len(running_threads)} sqlmap process(es) are still running...', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            reply = QMessageBox.question(self, 'Exit?', f'{len(running_threads)} sqlmap process(es) are still running. Do you want to stop them and exit?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if reply == QMessageBox.StandardButton.Yes:
-                for thread in running_threads: thread.stop(); thread.wait(500)
+                self.status_bar.showMessage(f"Stopping {len(running_threads)} running scan(s)...")
+                for thread in running_threads:
+                    thread.stop()
+                    # Wait for the thread to actually finish before continuing
+                    while not thread.isFinished():
+                        QApplication.processEvents() # Keep GUI responsive
+                        thread.wait(100) # Wait a short time
                 self.save_settings()
                 event.accept()
             else:
@@ -1445,4 +1451,3 @@ if __name__ == "__main__":
     window = SqlmapGui()
     window.show()
     sys.exit(app.exec())
-
